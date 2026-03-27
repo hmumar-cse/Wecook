@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EchoWatt | Smart Electricity Monitor</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f5f8;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #2c3e50;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      margin-bottom: 15px;
+      width: 420px;
+      border-radius: 8px;
+      box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .alert-ok {
+      color: green;
+      font-weight: bold;
+    }
+
+    .alert-warn {
+      color: red;
+      font-weight: bold;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 6px;
+      text-align: center;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <h1>⚡ EchoWatt Dashboard</h1>
+  <p>Smart Household Electricity Monitoring</p>
+
+  <div class="card">
+    <h3>🔌 Live Power Consumption</h3>
+    <p class="value" id="power">-- W</p>
+  </div>
+
+  <div class="card">
+    <h3>📊 Usage Summary</h3>
+    <p>Total Units: <b><span id="units">0</span> kWh</b></p>
+    <p>Estimated Bill: <b>₹<span id="bill">0</span></b></p>
+    <p>Status: <span id="alert"></span></p>
+  </div>
+
+  <div class="card">
+    <h3>📅 Usage History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Power (W)</th>
+        </tr>
+      </thead>
+      <tbody id="history"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:5000";
+
+    async function updateDashboard() {
+      // Real-time power
+      const powerRes = await fetch(API + "/realtime");
+      const powerData = await powerRes.json();
+      document.getElementById("power").innerText =
+        powerData.power + " W";
+
+      // Summary
+      const summaryRes = await fetch(API + "/summary");
+      const summary = await summaryRes.json();
+      document.getElementById("units").innerText = summary.units;
+      document.getElementById("bill").innerText = summary.bill;
+
+      const alertEl = document.getElementById("alert");
+      alertEl.innerText = summary.alert;
+
+      if (summary.alert.includes("exceeded")) {
+        alertEl.className = "alert-warn";
+      } else {
+        alertEl.className = "alert-ok";
+      }
+
+      // History
+      const historyRes = await fetch(API + "/daily");
+      const history = await historyRes.json();
+      const table = document.getElementById("history");
+      table.innerHTML = "";
+
+      history.slice().reverse().forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${new Date(row.time * 1000).toLocaleTimeString()}</td>
+          <td>${row.power}</td>
+        `;
+        table.appendChild(tr);
+      });
+    }
+
+    setInterval(updateDashboard, 3000);
+  </script>
+
+</body>
+</html>
